@@ -253,22 +253,28 @@ function SetupPathJson([String] $pathsJson) {
 	    if (-not (($previousJsonDoc.install -eq $jsonDoc.install) -and ($previousJsonDoc.var -eq $jsonDoc.var))) {
 	    	Write-Log("$($pathsJson) doesn't match to expected, changing it.")
 	    	Write-Verbose "Opening JSON file for write (locking) ..."
+			$i = 0;
             while ($true) {
                 try {
                     $file = [System.IO.StreamWriter] ([string] $pathsJson)
                     Write-Verbose "JSON File Opened and Locked."
+					Write-Verbose "Writing JSON ..."
+					$file.WriteLine($($jsonDoc | ConvertTo-Json))
+					Write-Verbose "Closing JSON ..."
+					$file.Close()
                     break
                 }
 	    		catch {
                     Write-Warning "Error Opening/Locking JSON File: $($Error[0].Exception.InnerException.Message)"
                     Write-Verbose "Trying again ..."
                     Start-Sleep -Milliseconds 1000
+					$i += 1;
+					if ( $i -gt 100 ){
+						Write-Log("WARNING 100 attempts tried. $($pathsJson) cannot be edited as locked by another process!")
+						break
+					}
                 }
             }
-            Write-Verbose "Writing JSON ..."
-            $file.WriteLine($($jsonDoc | ConvertTo-Json))
-            Write-Verbose "Closing JSON ..."
-            $file.Close()
         }
 	}
 }
